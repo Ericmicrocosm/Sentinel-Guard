@@ -1,40 +1,52 @@
 
-name: Sentinel Guard Android Build
+name: Sentinel Guard Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get Sentinel Guard source code
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install Flutter
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
-      - name: Create Android project structure
-        run: flutter create --platforms=android --project-name sentinel_guard build_workspace
-
-      - name: Copy Sentinel Guard application files
+      - name: Verify Flutter project
         run: |
-          cp pubspec.yaml build_workspace/pubspec.yaml
-          cp -r lib build_workspace/lib
+          test -f pubspec.yaml
+          test -f lib/main.dart
+          flutter --version
 
-      - name: Download Flutter packages
-        working-directory: build_workspace
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Build Android APK
-        working-directory: build_workspace
+      - name: Build release APK
         run: flutter build apk --release
 
-      - name: Save APK for download
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: sentinel-guard-android
-          path: build_workspace/build/app/outputs/flutter-apk/app-release.apk
+          name: sentinel-guard-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 7
